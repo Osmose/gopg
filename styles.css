@@ -1,0 +1,18 @@
+html {
+  box-sizing: border-box;
+  background: #999;
+}
+
+.black {
+  background: #000;
+}
+
+.white {
+  background: #FFF;
+}
+
+.cell {
+  width: 100px;
+  height: 100px;
+  border: 1px solid #000;
+}
