@@ -1,8 +1,57 @@
-const WIDTH = 9;
-const HEIGHT = 9;
 const EMPTY = 0;
 const BLACK = 1;
 const WHITE = 2;
+
+class Cell {
+  constructor(row, col) {
+    this.row = row;
+    this.col = col;
+    this.elem = document.createElement('td');
+    this.elem.classList.add('cell');
+    this.elem.dataset.row = row;
+    this.elem.dataset.col = col;
+    this._color = EMPTY;
+  }
+
+  set color(newColor) {
+    this._color = newColor;
+    switch (newColor) {
+      case EMPTY:
+        this.elem.className = 'cell';
+        break;
+      case BLACK:
+        this.elem.className = 'black';
+        break;
+      case WHITE:
+        this.elem.className = 'white';
+        break;
+      default:
+        break;
+    }
+  }
+
+  get color() {
+    return this._color;
+  }
+}
+
+class Group {
+  constructor(color, cells = []) {
+    this.cells = cells;
+    this.color = color;
+  }
+
+  add(cell) {
+    this.cells.push(cell);
+  }
+
+  merge(otherGroup) {
+    if (otherGroup.color !== this.color) {
+      throw new Error('Cannot merge two groups of differing colors.');
+    }
+    return new Group(this.color, this.cells.concat(otherGroup.cells));
+  }
+}
 
 class Board {
   constructor(size) {
@@ -45,7 +94,8 @@ class Board {
         }
       }
     }
-    console.log(groups);
+
+    return groups;
   }
 
   findGroupAt(row, col, color, checked) {
@@ -96,7 +146,45 @@ class Board {
 
     const row = parseInt(cell.dataset.row, 10);
     const col = parseInt(cell.dataset.col, 10);
+    if (this.get(row, col) !== EMPTY) {
+      alert('NOPE');
+      return;
+    }
+
     this.set(row, col, this.currentColor);
+    const groups = this.findGroups();
+
+    // If any opposing groups are captured, clear them, swap, and finish.
+    const capturedGroups = groups.filter(
+      group => group.color !== this.currentColor && this.liberties(group).length === 0
+    );
+    if (capturedGroups.length > 0) {
+      for (const capturedGroup of capturedGroups) {
+        for (const capturedCell of capturedGroup.cells) {
+          this.set(capturedCell.row, capturedCell.col, EMPTY);
+        }
+      }
+
+      this.swapColor();
+      return;
+    }
+
+    // If no opposing groups are captured, but our own groups are, then this is
+    // an impossible move and we need to revert it.
+    const selfCapturedGroups = groups.filter(
+      group => group.color === this.currentColor && this.liberties(group).length === 0
+    );
+    if (selfCapturedGroups.length > 0) {
+      this.set(row, col, EMPTY);
+      alert('NOPE');
+      return;
+    }
+
+    // If we haven't finished, then the move was valid and we just need to swap.
+    this.swapColor();
+  }
+
+  swapColor() {
     if (this.currentColor === BLACK) {
       this.currentColor = WHITE;
     } else {
@@ -108,67 +196,59 @@ class Board {
     return (row * this.size) + col;
   }
 
-  set(row, col, value) {
-    this.getCell(row, col).value = value;
+  set(row, col, color) {
+    this.getCell(row, col).color = color;
   }
 
   get(row, col) {
-    return this.getCell(row, col).value;
+    return this.getCell(row, col).color;
   }
 
   getCell(row, col) {
-    return this.cells[this.index(row, col)];
-  }
-}
-
-class Group {
-  constructor(color, cells = []) {
-    this.cells = cells;
-    this.color = color;
-  }
-
-  add(cell) {
-    this.cells.push(cell);
-  }
-
-  merge(otherGroup) {
-    if (otherGroup.color !== this.color) {
-      throw new Error('Cannot merge two groups of differing colors.');
+    if ((row >= 0) && (row <= this.size - 1) && (col >= 0) && (col <= this.size - 1)) {
+      return this.cells[this.index(row, col)];
     }
-    return new Group(this.color, this.cells.concat(otherGroup.cells));
-  }
-}
 
-class Cell {
-  constructor(row, col) {
-    this.row = row;
-    this.col = col;
-    this.elem = document.createElement('td');
-    this.elem.classList.add('cell');
-    this.elem.dataset.row = row;
-    this.elem.dataset.col = col;
-    this._value = EMPTY;
+    return null;
   }
 
-  set value(newValue) {
-    this._value = newValue;
-    switch (newValue) {
-      case EMPTY:
-        this.elem.className = '';
-        break;
-      case BLACK:
-        this.elem.className = 'black';
-        break;
-      case WHITE:
-        this.elem.className = 'white';
-        break;
+  left(cell) {
+    return this.getCell(cell.row, cell.col - 1);
+  }
+
+  right(cell) {
+    return this.getCell(cell.row, cell.col + 1);
+  }
+
+  up(cell) {
+    return this.getCell(cell.row - 1, cell.col);
+  }
+
+  down(cell) {
+    return this.getCell(cell.row + 1, cell.col);
+  }
+
+  liberties(group) {
+    const liberties = [];
+    for (const cell of group.cells) {
+      const siblings = [
+        this.left(cell),
+        this.right(cell),
+        this.up(cell),
+        this.down(cell),
+      ].filter(c => c !== null);
+
+      for (const sibling of siblings) {
+        if (sibling.color === EMPTY) {
+          liberties.push(sibling);
+        }
+      }
     }
-  }
 
-  get value() {
-    return this._value;
+    return liberties;
   }
 }
 
-const board = window.board = new Board(9);
-document.body.appendChild(board.elem);
+
+window.board = new Board(9);
+document.body.appendChild(window.board.elem);

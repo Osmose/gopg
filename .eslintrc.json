@@ -1,0 +1,21 @@
+{
+    "extends": "airbnb-base",
+    "plugins": [
+        "import"
+    ],
+    "parserOptions": {
+        "ecmaVersion": "2016"
+    },
+    "env": {
+        "browser": true
+    },
+    "rules": {
+        "no-restricted-syntax": ["off"],
+        "no-underscore-dangle": ["off"],
+        "no-continue": ["off"],
+        "no-plusplus": ["off"],
+        "no-param-reassign": ["off"],
+        "no-use-before-define": ["warn", { "functions": false }],
+        "comma-dangle": ["off"]
+    }
+}
